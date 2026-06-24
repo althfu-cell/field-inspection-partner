@@ -23,7 +23,7 @@
     --shadow-cta:rgba(255,255,255,.2) 0 -2px 1px 0 inset,rgba(255,255,255,.1) 0 4px 16px 0 inset,rgba(0,0,0,.1) 0 6px 16px 0;
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-  html,body{margin:0;padding:0}
+  html,body{margin:0;padding:0;overflow-x:hidden}
   body{
     font-family:'Inter',"Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",system-ui,sans-serif;
     background:var(--bg);color:var(--ink);line-height:1.5;
@@ -60,6 +60,7 @@
     background:#fff;min-height:var(--tap);letter-spacing:-0.14px;
     transition:border-color .15s,box-shadow .15s;
   }
+  input[type=date]{min-width:0;max-width:100%;-webkit-appearance:none;appearance:none}
   textarea{min-height:80px;resize:vertical}
   input:focus,select:focus,textarea:focus{outline:none;border-color:var(--iris);box-shadow:0 0 0 3px rgba(130,71,255,.12)}
 
@@ -316,8 +317,8 @@
   const $$ = s => Array.from(document.querySelectorAll(s));
   const esc = s => String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 
-  const b64enc = obj => encodeURIComponent(btoa(unescape(encodeURIComponent(JSON.stringify(obj)))));
-  const b64dec = str => { try{ return JSON.parse(decodeURIComponent(escape(atob(decodeURIComponent(str))))); }catch(e){ return null; } };
+  const b64enc = obj => btoa(unescape(encodeURIComponent(JSON.stringify(obj)))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');
+  const b64dec = str => { try{ const p=str.replace(/-/g,'+').replace(/_/g,'/'); return JSON.parse(decodeURIComponent(escape(atob(p+'=='.slice(0,(4-p.length%4)%4))))); }catch(e){ return null; } };
   const hashKey = obj => { const s=JSON.stringify(obj); let h=5381; for(let i=0;i<s.length;i++) h=((h<<5)+h+s.charCodeAt(i))>>>0; return "fic_"+h.toString(36); };
 
   let toastTimer;
@@ -476,14 +477,14 @@
   }
 
   function mapButtons(addr, lat, lng){
+    const q=encodeURIComponent(addr);
     if(lat&&lng){
       const nameEnc=encodeURIComponent(addr||"목적지");
       return `<div class="map-row no-print">
         <a class="btn kakao" href="https://map.kakao.com/link/to/${nameEnc},${lat},${lng}" target="_blank" rel="noopener">🗺️ 카카오맵</a>
-        <a class="btn naver" href="https://map.naver.com/p/search/${encodeURIComponent(lat+","+lng)}" target="_blank" rel="noopener">🗺️ 네이버지도</a>
+        <a class="btn naver" href="https://map.naver.com/p/search/${q}" target="_blank" rel="noopener">🗺️ 네이버지도</a>
       </div>`;
     }
-    const q=encodeURIComponent(addr);
     return `<div class="map-row no-print">
       <a class="btn kakao" href="https://map.kakao.com/?q=${q}" target="_blank" rel="noopener">🗺️ 카카오맵</a>
       <a class="btn naver" href="https://map.naver.com/p/search/${q}" target="_blank" rel="noopener">🗺️ 네이버지도</a>
