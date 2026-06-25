@@ -179,9 +179,7 @@
   .hint{font-size:.74rem;color:var(--ink-soft);margin-top:5px;line-height:1.4}
   .hidden{display:none !important}
 
-  /* ── nav-complete ── */
-  .nav-complete{margin-bottom:6px}
-  .nav-complete .btn{background:var(--grad);font-weight:700;font-size:1rem;min-height:50px}
+  select.unset{color:var(--iris);font-weight:600}
 
   /* ── Celebration overlay ── */
   .celeb-overlay{position:fixed;inset:0;z-index:500;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.65);backdrop-filter:blur(6px);animation:celFadeIn .4s ease}
@@ -222,6 +220,7 @@
         <div class="field">
           <label class="lbl" for="f-type">점검 유형</label>
           <select id="f-type">
+            <option value="" disabled>✦ 유형을 선택하면 항목이 자동으로 채워져요</option>
             <option value="불법광고물">불법광고물</option>
             <option value="공중화장실">공중화장실</option>
             <option value="공원시설">공원시설</option>
@@ -229,7 +228,7 @@
             <option value="직접입력">직접입력</option>
           </select>
         </div>
-        <div class="field" id="custom-cl-wrap">
+        <div class="field hidden" id="custom-cl-wrap">
           <label class="lbl">점검 항목 <span style="color:var(--iris);font-weight:600">(수정·삭제·추가 가능)</span></label>
           <div id="custom-cl-list"></div>
           <button class="btn ghost" type="button" id="add-cl-item" style="margin-top:6px">+ 항목 추가</button>
@@ -274,9 +273,6 @@
 <!-- 하단 nav -->
 <div class="nav-bar hidden" id="nav-bar">
   <div class="nav-inner">
-    <div class="nav-complete no-print">
-      <button class="btn" id="complete-btn">✅ 점검 완료하기</button>
-    </div>
     <div class="nav-move">
       <button class="btn secondary" id="prev-btn">◀ 이전</button>
       <button class="btn secondary" id="next-btn">다음 ▶</button>
@@ -381,7 +377,7 @@
   }
 
   /* ── STEP 1 상태 ── */
-  let sites=[], customCl=[""];
+  let sites=[], customCl=[];
   function blankSite(){ return {addr:"",alias:"",memo:"",lat:null,lng:null}; }
 
   function renderSites(){
@@ -438,9 +434,11 @@
   $("#add-site").addEventListener("click",()=>{sites.push(blankSite());renderSites();window.scrollTo({top:document.body.scrollHeight,behavior:"smooth"});});
   $("#f-type").addEventListener("change",e=>{
     const type=e.target.value;
+    e.target.classList.remove("unset");
     const tpl=checklistTemplates[type];
     if(tpl){ customCl=tpl.slice(); }
-    else { if(!customCl.length||(customCl.length===1&&!customCl[0])) customCl=[""]; }
+    else { customCl=[""]; }
+    $("#custom-cl-wrap").classList.remove("hidden");
     renderCustomCl();
   });
   $("#custom-cl-list").addEventListener("input",e=>{if(e.target.dataset.ci!=null)customCl[+e.target.dataset.ci]=e.target.value;});
@@ -452,6 +450,7 @@
   /* ── 생성 ── */
   $("#generate").addEventListener("click",()=>{
     const date=$("#f-date").value, type=$("#f-type").value;
+    if(!type){toast("점검 유형을 먼저 선택해 주세요");return;}
     const cleanSites=sites.filter(s=>s.addr.trim()).map(s=>({
       addr:s.addr.trim(), alias:s.alias.trim(), memo:s.memo.trim(),
       lat:s.lat, lng:s.lng
@@ -613,13 +612,7 @@
     $("#celeb-close").onclick=()=>{ stop(); $("#celeb-overlay").classList.add("hidden"); };
   }
 
-  async function completeInspection(){
-    const none=DATA.sites.filter((_,i)=>!progress[i]?.result).length;
-    if(none>0&&!confirm(`아직 결과 미입력 점검지가 ${none}곳 있습니다.\n그래도 완료하시겠습니까?`)) return;
-    showCelebration();
-  }
-
-  function renderStep2(data){
+function renderStep2(data){
     DATA=data; cur=0; celebShown=false;
     progressKey=hashKey(data);
     try{ progress=JSON.parse(localStorage.getItem(progressKey))||{}; }catch(e){ progress={}; }
@@ -658,17 +651,21 @@
     $("#step2").classList.add("hidden"); $("#nav-bar").classList.add("hidden");
     $("#step1").classList.remove("hidden"); window.scrollTo(0,0);
   });
-  $("#complete-btn").addEventListener("click",()=>completeInspection());
 
   /* ── STEP 1 복원 ── */
   function fillStep1(data){
     $("#f-date").value=(data&&data.date)||new Date().toISOString().slice(0,10);
-    $("#f-type").value=(data&&data.type)||"불법광고물";
-    const t=data?.type||"불법광고물";
-    customCl=(data&&data.customChecklist?.length)
-      ?data.customChecklist.slice()
-      :(checklistTemplates[t]?.slice()||[""]);
-    renderCustomCl();
+    const ftype=$("#f-type");
+    ftype.value=(data&&data.type)||"";
+    if(!ftype.value){ ftype.classList.add("unset"); $("#custom-cl-wrap").classList.add("hidden"); }
+    else {
+      ftype.classList.remove("unset");
+      customCl=(data&&data.customChecklist?.length)
+        ?data.customChecklist.slice()
+        :(checklistTemplates[data.type]?.slice()||[""]);
+      $("#custom-cl-wrap").classList.remove("hidden");
+      renderCustomCl();
+    }
     sites=(data&&data.sites?.length)
       ?data.sites.map(s=>({addr:s.addr||"",alias:s.alias||"",memo:s.memo||"",lat:s.lat||null,lng:s.lng||null}))
       :[blankSite()];
