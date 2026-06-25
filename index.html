@@ -301,9 +301,14 @@
 "use strict";
 (function(){
   let sb=null;
-  import('https://esm.sh/@supabase/supabase-js@2').then(({createClient})=>{
-    try{ sb=createClient('https://pctxvxblffnjnmprgwqv.supabase.co','sb_publishable_qJVsR9RMnNUykMBJjjEyTw_PNCYLBLo'); }catch(e){}
-  }).catch(()=>{});
+  (function(){
+    const s=document.createElement('script');
+    s.src='https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
+    s.onload=function(){
+      try{ sb=supabase.createClient('https://pctxvxblffnjnmprgwqv.supabase.co','sb_publishable_qJVsR9RMnNUykMBJjjEyTw_PNCYLBLo'); }catch(e){}
+    };
+    document.head.appendChild(s);
+  })();
 
   /* ── 체크리스트 템플릿 ── */
   const checklistTemplates = {
@@ -484,9 +489,13 @@
       const {data:row,error}=await sb.from('inspection_progress')
         .select('progress_json').eq('hash_key',progressKey).maybeSingle();
       if(!error&&row?.progress_json){
-        progress=row.progress_json;
-        try{ localStorage.setItem(progressKey,JSON.stringify(progress)); }catch(e){}
-        updateSummary(); renderCard();
+        const remote=row.progress_json;
+        const remoteDone=Object.values(remote).filter(p=>p&&p.result).length;
+        if(remoteDone>doneCount()){
+          progress=remote;
+          try{ localStorage.setItem(progressKey,JSON.stringify(progress)); }catch(e){}
+          updateSummary(); renderCard();
+        }
       }
     }catch(e){}
   }
