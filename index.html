@@ -8,7 +8,6 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <style>
   :root{
     --ink:#020817; --ink-soft:#52606d;
@@ -301,10 +300,10 @@
 <script>
 "use strict";
 (function(){
-  const sb=supabase.createClient(
-    'https://pctxvxblffnjnmprgwqv.supabase.co',
-    'sb_publishable_qJVsR9RMnNUykMBJjjEyTw_PNCYLBLo'
-  );
+  let sb=null;
+  import('https://esm.sh/@supabase/supabase-js@2').then(({createClient})=>{
+    try{ sb=createClient('https://pctxvxblffnjnmprgwqv.supabase.co','sb_publishable_qJVsR9RMnNUykMBJjjEyTw_PNCYLBLo'); }catch(e){}
+  }).catch(()=>{});
 
   /* ── 체크리스트 템플릿 ── */
   const checklistTemplates = {
@@ -472,6 +471,7 @@
   function siteProgress(i){ if(!progress[i]) progress[i]={checks:[],result:null}; return progress[i]; }
   function saveProgress(){
     try{ localStorage.setItem(progressKey,JSON.stringify(progress)); }catch(e){}
+    if(!sb) return;
     sb.from('inspection_progress').upsert({
       hash_key:progressKey, progress_json:progress,
       updated_at:new Date().toISOString()
@@ -479,6 +479,7 @@
   }
 
   async function syncFromSupabase(){
+    if(!sb) return;
     try{
       const {data:row,error}=await sb.from('inspection_progress')
         .select('progress_json').eq('hash_key',progressKey).maybeSingle();
