@@ -477,10 +477,12 @@
   function saveProgress(){
     try{ localStorage.setItem(progressKey,JSON.stringify(progress)); }catch(e){}
     if(!sb) return;
-    sb.from('inspection_progress').upsert({
-      hash_key:progressKey, progress_json:progress,
-      updated_at:new Date().toISOString()
-    }).catch(()=>{});
+    try{
+      sb.from('inspection_progress').upsert({
+        hash_key:progressKey, progress_json:progress,
+        updated_at:new Date().toISOString()
+      }).catch(()=>{});
+    }catch(e){}
   }
 
   async function syncFromSupabase(){
